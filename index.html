@@ -1,0 +1,49 @@
+<script>
+    function render() {
+        if(!img) return;
+        const A4W = 794, A4H = 1123;
+        const cols = st.pages == 1 ? 1 : (st.pages == 4 ? 2 : 3);
+        const rows = cols;
+        cv.width = A4W * cols; cv.height = A4H * rows;
+        
+        ctx.fillStyle = "white"; 
+        ctx.fillRect(0, 0, cv.width, cv.height);
+        
+        ctx.save();
+        ctx.translate(cv.width/2 + st.x, cv.height/2 + st.y);
+        let dw = cv.width * (st.size/100), dh = dw * (img.height/img.width);
+        
+        // CORRECTION ICI : Si mode original, on dessine et on ARRÊTE là.
+        if (st.style === 'original') {
+            ctx.globalAlpha = 1.0; // Force l'opacité totale
+            ctx.drawImage(img, -dw/2, -dh/2, dw, dh);
+            ctx.restore();
+            drawSafetyLines(cols, rows, A4W, A4H); // Dessine juste les repères roses
+            updateUI();
+            return; 
+        }
+
+        // Sinon, on continue le traitement pour les modes Stencil
+        ctx.drawImage(img, -dw/2, -dh/2, dw, dh);
+        ctx.restore();
+        processImage();
+        drawSafetyLines(cols, rows, A4W, A4H);
+        updateUI();
+    }
+
+    function drawSafetyLines(cols, rows, A4W, A4H) {
+        ctx.strokeStyle = "rgba(255,0,122,0.3)";
+        ctx.setLineDash([8, 8]);
+        for(let c=0; c<cols; c++) {
+            for(let r=0; r<rows; r++) {
+                ctx.strokeRect(c*A4W + st.safeMargin, r*A4H + st.safeMargin, A4W - (st.safeMargin*2), A4H - (st.safeMargin*2));
+            }
+        }
+    }
+
+    function updateUI() {
+        $('vBright').textContent = st.bright; $('vSharp').textContent = st.sharp;
+        $('vBlack').textContent = st.black; $('vSize').textContent = st.size + "%";
+        $('vMargin').textContent = st.safeMargin + "px";
+    }
+</script>
