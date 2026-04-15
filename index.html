@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Stencil Print Pro | Maman Sokal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rye&family=Oswald:wght@300;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --pink: #ff007a; --blue: #00f2ff; --yellow: #fff200; --bg: #0d0d12; --card: #16161f; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Oswald', sans-serif; }
+        body { background: var(--bg); color: #fff; padding-bottom: 50px; }
+        header { padding: 15px; text-align: center; background: #000; border-bottom: 3px solid var(--pink); display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .logo-s { height: 35px; border-radius: 4px; }
+        h1 { font-family: 'Rye'; font-size: 1.2rem; text-shadow: 0 0 8px var(--pink); }
+        
+        .toolbar { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; background: rgba(0,0,0,0.9); position: sticky; top: 0; z-index: 100; border-bottom: 1px solid var(--blue); }
+        .btn { padding: 10px; border-radius: 8px; border: 2px solid; font-weight: bold; text-transform: uppercase; cursor: pointer; background: transparent; font-size: 0.75rem; text-align: center; color: #fff; }
+        .btn-in { border-color: var(--pink); color: var(--pink); }
+        .btn-out { border-color: var(--blue); color: var(--blue); }
+        .btn-active { background: var(--blue); color: #000 !important; }
+
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; }
+        .panel { background: var(--card); padding: 10px; border-radius: 10px; border: 1px solid #2a2a35; }
+        .full { grid-column: span 2; }
+        label { display: flex; justify-content: space-between; font-size: 0.65rem; color: var(--yellow); text-transform: uppercase; margin-bottom: 5px; }
+        input[type=range] { width: 100%; accent-color: var(--pink); }
+        select { width: 100%; background: #000; color: #fff; padding: 8px; border-radius: 5px; border: 1px solid #444; font-size: 0.8rem; }
+
+        .preview-box { padding: 15px; background: #050505; text-align: center; }
+        canvas { max-width: 100%; height: auto; background: #fff; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+    </style>
+</head>
+<body>
+
+<header>
+    <img src="https://i.postimg.cc/CR9ZXgKy/CR9ZXgKy.png" class="logo-s">
+    <h1>Maman Sokal - Stencil Pro</h1>
+</header>
+
+<div class="toolbar">
+    <label for="fIn" class="btn btn-in">✦ Charger</label>
+    <input type="file" id="fIn" accept="image/*" style="display:none">
+    <button class="btn btn-out" id="btnExp">⬇ Exporter</button>
+</div>
+
+<div class="grid">
+    <div class="panel full">
+        <label>Style de Rendu</label>
+        <select id="styleMode">
+            <option value="contour">Contours Nets (Coloriage)</option>
+            <option value="shades">Ombrages (Détails légers)</option>
+            <option value="full">Complet (Réalisme)</option>
+        </select>
+    </div>
+
+    <div class="panel">
+        <label>Noir/Détails <span id="vBlack">120</span></label>
+        <input type="range" id="black" min="10" max="240" value="120">
+    </div>
+    <div class="panel">
+        <label>Rotation <span id="vRot">0</span>°</label>
+        <input type="range" id="rot" min="0" max="360" step="90" value="0">
+    </div>
+
+    <div class="panel">
+        <label>Orientation</label>
+        <button id="btnPortrait" class="btn btn-active" style="width:48%; font-size:0.6rem">Portrait</button>
+        <button id="btnPaysage" class="btn" style="width:48%; font-size:0.6rem">Paysage</button>
+    </div>
+    <div class="panel">
+        <label>Miroir</label>
+        <button id="btnMirror" class="btn" style="width:100%">Désactivé</button>
+    </div>
+
+    <div class="panel full">
+        <label>Montage</label>
+        <select id="pages">
+            <option value="1">1 Page (A4)</option>
+            <option value="2">2 Pages (Split)</option>
+            <option value="4">4 Pages (2x2)</option>
+            <option value="9">9 Pages (3x3)</option>
+        </select>
+    </div>
+</div>
+
+<div class="preview-box">
+    <canvas id="gCanvas"></canvas>
+</div>
+
+<script>
+    const $ = id => document.getElementById(id);
+    const cv = $('gCanvas');
+    const ctx = cv.getContext('2d');
+    let img = null;
+    let state = { style: 'contour', black: 120, rot: 0, mirror: false, landscape: false, pages: 1 };
+
+    $('fIn').onchange = (e) => {
+        const r = new FileReader();
+        r.onload = (ev) => { img = new Image(); img.onload = render; img.src = ev.target.result; };
+        r.readAsDataURL(e.target.files[0]);
+    };
+
+    function render() {
+        if (!img) return;
+        
+        // Taille A4 (approx 300 DPI pour le web)
+        const A4W = state.landscape ? 1123 : 794;
+        const A4H = state.landscape ? 794 : 1123;
+        cv.width = A4W; cv.height = A4H;
+
+        ctx.fillStyle = "white";
+        ctx.fillRect(0, 0, cv.width, cv.height);
+
+        ctx.save();
+        ctx.translate(cv.width/2, cv.height/2);
+        if (state.mirror) ctx.scale(-1, 1);
+        ctx.rotate(state.rot * Math.PI / 180);
+
+        const ratio = img.width / img.height;
+        let dw = cv.width * 0.9;
+        let dh = dw / ratio;
+        if (dh > cv.height * 0.9) { dh = cv.height * 0.9; dw = dh * ratio; }
+
+        ctx.drawImage(img, -dw/2, -dh/2, dw, dh);
+        ctx.restore();
+
+        applyFilter();
+        $('vBlack').textContent = state.black;
+        $('vRot').textContent = state.rot;
+    }
+
+    function applyFilter() {
+        const idat = ctx.getImageData(0, 0, cv.width, cv.height);
+        const d = idat.data;
+        const w = cv.width;
+
+        if (state.style === 'contour') {
+            // Algorithme de Sobel simplifié pour contours nets
+            const temp = new Uint8ClampedArray(d);
+            for (let i = 0; i < d.length; i += 4) {
+                const x = (i/4) % w;
+                const y = Math.floor((i/4) / w);
+                if (x === 0 || y === 0 || x === w-1) continue;
+                
+                const getG = (ox, oy) => (temp[i + (ox + oy * w) * 4]);
+                const gx = getG(-1,-1) + 2*getG(-1,0) + getG(-1,1) - getG(1,-1) - 2*getG(1,0) - getG(1,1);
+                const gy = getG(-1,-1) + 2*getG(0,-1) + getG(1,-1) - getG(-1,1) - 2*getG(0,1) - getG(1,1);
+                const val = Math.sqrt(gx*gx + gy*gy) > state.black ? 0 : 255;
+                d[i] = d[i+1] = d[i+2] = val;
+            }
+        } else {
+            for (let i = 0; i < d.length; i += 4) {
+                const avg = (d[i] + d[i+1] + d[i+2]) / 3;
+                let val;
+                if (state.style === 'shades') {
+                    val = avg < state.black ? (avg < state.black/2 ? 0 : 180) : 255;
+                } else {
+                    val = avg < state.black ? 0 : 255;
+                }
+                d[i] = d[i+1] = d[i+2] = val;
+            }
+        }
+        ctx.putImageData(idat, 0, 0);
+    }
+
+    // Events
+    $('styleMode').onchange = (e) => { state.style = e.target.value; render(); };
+    $('black').oninput = (e) => { state.black = e.target.value; render(); };
+    $('rot').oninput = (e) => { state.rot = e.target.value; render(); };
+    $('btnMirror').onclick = () => { state.mirror = !state.mirror; $('btnMirror').textContent = state.mirror ? 'Activé' : 'Désactivé'; render(); };
+    $('btnPortrait').onclick = () => { state.landscape = false; $('btnPortrait').classList.add('btn-active'); $('btnPaysage').classList.remove('btn-active'); render(); };
+    $('btnPaysage').onclick = () => { state.landscape = true; $('btnPaysage').classList.add('btn-active'); $('btnPortrait').classList.remove('btn-active'); render(); };
+    
+    $('btnExp').onclick = () => {
+        const link = document.createElement('a');
+        link.download = 'stencil-sokal.png';
+        link.href = cv.toDataURL();
+        link.click();
+    };
+</script>
+</body>
+</html>
