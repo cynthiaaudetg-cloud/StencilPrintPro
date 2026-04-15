@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Stencil Print Pro | Maman Sokal Ultra</title>
+<link href="https://fonts.googleapis.com/css2?family=Rye&family=Oswald:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --neon-pink: #ff007a; --neon-blue: #00f2ff; --neon-yellow: #fff200;
+  --bg: #000000; --card: rgba(16, 16, 26, 0.95); --text: #ffffff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body { background: var(--bg); color: var(--text); font-family: 'Oswald', sans-serif; min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
+
+header { padding: 25px; text-align: center; border-bottom: 4px solid var(--neon-pink); box-shadow: 0 0 25px var(--neon-pink); background: var(--card); }
+h1 { font-family: 'Rye', cursive; font-size: 2.4rem; color: #fff; text-shadow: 0 0 10px #fff, 0 0 20px var(--neon-pink), 0 0 40px var(--neon-pink); animation: pulse 1.5s infinite alternate; }
+@keyframes pulse { from { opacity: 0.8; } to { opacity: 1; text-shadow: 0 0 15px #fff, 0 0 30px var(--neon-pink), 0 0 50px var(--neon-blue); } }
+
+.toolbar { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 20px; background: var(--card); border-bottom: 2px solid var(--neon-blue); position: sticky; top: 0; z-index: 100; }
+.btn { padding: 15px; border-radius: 12px; border: 3px solid transparent; font-weight: 700; text-transform: uppercase; cursor: pointer; font-family: 'Oswald', sans-serif; font-size: 0.9rem; }
+.btn-primary { background: #000; color: var(--neon-pink); border-color: var(--neon-pink); box-shadow: 0 0 10px var(--neon-pink); }
+.btn-export { background: #000; color: var(--neon-blue); border-color: var(--neon-blue); box-shadow: 0 0 10px var(--neon-blue); }
+
+.controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; padding: 15px; background: rgba(0,255,127,0.05); border: 1px solid rgba(0,255,127,0.2); margin: 10px; border-radius: 15px; }
+.control-group { display: flex; flex-direction: column; gap: 5px; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); }
+.control-group label { font-size: 0.65rem; color: var(--neon-yellow); text-transform: uppercase; display: flex; justify-content: space-between; letter-spacing: 1px; }
+.control-group label span { color: var(--neon-blue); }
+input[type=range] { -webkit-appearance: none; height: 6px; background: #222; border-radius: 5px; accent-color: var(--neon-pink); }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; background: #000; border: 2px solid var(--neon-pink); border-radius: 50%; box-shadow: 0 0 10px var(--neon-pink); }
+select { background: #000; color: white; border: 2px solid var(--neon-pink); padding: 10px; border-radius: 8px; font-family: 'Oswald', sans-serif; box-shadow: 0 0 5px var(--neon-pink); }
+
+.workspace { flex: 1; padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 50px; }
+.page-container { background: white; box-shadow: 0 0 30px rgba(0,0,0,0.9); position: relative; width: 85vw; height: calc(85vw * 1.414); max-width: 380px; border: 2px solid #fff; }
+.page-label { position: absolute; top: -30px; left: 0; color: var(--neon-blue); font-size: 0.8rem; font-weight: bold; text-transform: uppercase; text-shadow: 0 0 5px var(--neon-blue); }
+
+#modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.98); z-index: 1000; padding: 20px; flex-direction: column; overflow-y: auto; }
+.export-item { margin-bottom: 30px; text-align: center; border: 2px solid var(--neon-blue); padding: 20px; border-radius: 15px; background: #000; box-shadow: 0 0 20px rgba(0,242,255,0.4); }
+.export-item img { width: 100%; max-width: 350px; border-radius: 5px; margin-bottom: 15px; }
+</style>
+</head>
+<body>
+
+<header>
+    <h1>Maman Sokal</h1>
+    <div style="font-size: 0.7rem; color: var(--neon-yellow); letter-spacing: 4px;">STUDIO TATTOO PRO</div>
+</header>
+
+<div class="toolbar">
+    <label for="fileIn" class="btn btn-primary">✦ Charger Image</label>
+    <input type="file" id="fileIn" accept="image/*" style="display:none">
+    <button class="btn btn-export" id="btnExp" disabled>⬇ Exporter Stencil</button>
+</div>
+
+<div class="controls">
+    <div class="control-group"><label>Zoom <span id="vSize">100%</span></label><input type="range" id="size" min="10" max="800" value="100"></div>
+    <div class="control-group"><label>Marge <span id="vMarg">8mm</span></label><input type="range" id="marg" min="0" max="30" value="8"></div>
+    <div class="control-group"><label>Contours <span id="vCont">100</span></label><input type="range" id="cont" min="50" max="250" value="100"></div>
+    <div class="control-group"><label>Ombrage <span id="vDith">Non</span></label><input type="range" id="dith" min="0" max="2" value="0" step="1"></div>
+    <div class="control-group"><label>Format Montage</label><select id="pages">
+        <option value="1">1 Page</option><option value="4">4 Pages (2x2)</option>
+        <option value="6">6 Pages (2x3)</option><option value="9">9 Pages (3x3)</option>
+        <option value="12">12 Pages (3x4)</option>
+    </select></div>
+</div>
+
+<div class="workspace" id="drawZone"></div>
+
+<div id="modal">
+    <button class="btn btn-primary" style="margin-bottom:25px; width:100%" onclick="this.parentElement.style.display='none'">✕ Retour au Studio</button>
+    <div id="exportList"></div>
+</div>
+
+<script>
+let state = { img: null, size: 100, pages: 1, margin: 8, dith: 0, cont: 100 };
+const A4_W = 794, A4_H = 1123, $ = id => document.getElementById(id);
+
+$('fileIn').onchange = (e) => {
+    const reader = new FileReader(); reader.onload = (ev) => {
+        const i = new Image(); i.onload = () => { state.img = i; $('btnExp').disabled = false; render(); };
+        i.src = ev.target.result;
+    }; reader.readAsDataURL(e.target.files[0]);
+};
+
+['size','marg','cont','dith'].forEach(id => $(id).oninput = (e) => { 
+    state[id] = e.target.value; 
+    $(id==='dith'?'vDith':id==='size'?'vSize':id==='marg'?'vMarg':'vCont').textContent = 
+    id==='dith'?(["Non","Légère","Intense"][e.target.value]):id==='marg'?e.target.value+'mm':id==='size'?e.target.value+'%':e.target.value;
+    render(); 
+});
+$('pages').onchange = (e) => { state.pages = parseInt(e.target.value); render(); };
+
+function applyEffects(imageData, dithLevel, contrast) {
+    const d = imageData.data;
+    const factor = (259 * (parseInt(contrast) + 255)) / (255 * (259 - parseInt(contrast)));
+    for (let i = 0; i < d.length; i += 4) {
+        if (d[i] > 252 && d[i+1] > 252 && d[i+2] > 252) { d[i]=d[i+1]=d[i+2]=255; continue; }
+        d[i] = factor * (d[i] - 128) + 128; d[i+1] = factor * (d[i+1] - 128) + 128; d[i+2] = factor * (d[i+2] - 128) + 128;
+        if(dithLevel > 0) {
+            let avg = (d[i] + d[i+1] + d[i+2]) / 3;
+            let val = (avg < (dithLevel==1?198:155) && avg < Math.random()*255) ? 0 : 255;
+            d[i]=d[i+1]=d[i+2]=val;
+        }
+    }
+}
+
+function render() {
+    const zone = $('drawZone'); zone.innerHTML = ''; if(!state.img) return;
+    let cols = state.pages === 1 ? 1 : (state.pages <= 6 ? 2 : 3);
+    let rows = Math.ceil(state.pages / cols);
+    const mPx = state.margin * 3.78;
+    const usableW = A4_W - mPx * 2; const usableH = A4_H - mPx * 2;
+    const totalImageW = usableW * (state.size/100) * cols;
+    const totalImageH = totalImageW * (state.img.height / state.img.width);
+
+    for(let i=0; i<state.pages; i++) {
+        const wrap = document.createElement('div'); wrap.className = 'page-container';
+        const lbl = document.createElement('div'); lbl.className = 'page-label'; lbl.textContent = `Page ${i+1}`;
+        wrap.appendChild(lbl);
+        const cv = document.createElement('canvas'); cv.width = A4_W; cv.height = A4_H; cv.style.width = "100%";
+        const ctx = cv.getContext('2d'); ctx.fillStyle = "white"; ctx.fillRect(0,0,A4_W,A4_H);
+
+        const col = i % cols; const row = Math.floor(i / cols);
+        ctx.save(); ctx.rect(mPx, mPx, usableW, usableH); ctx.clip();
+
+        const offsetX = (usableW * cols - totalImageW) / 2;
+        const offsetY = (usableH * rows - totalImageH) / 2;
+
+        ctx.drawImage(state.img, 
+            mPx + offsetX - col * usableW, mPx + offsetY - row * usableH, 
+            totalImageW, totalImageH
+        );
+
+        const id = ctx.getImageData(0,0,A4_W,A4_H); applyEffects(id, state.dith, state.cont); ctx.putImageData(id, 0, 0);
+        ctx.restore(); wrap.appendChild(cv); zone.appendChild(wrap);
+    }
+}
+
+$('btnExp').onclick = () => {
+    const list = $('exportList'); list.innerHTML = '';
+    document.querySelectorAll('canvas').forEach((c, idx) => {
+        const item = document.createElement('div'); item.className = 'export-item';
+        const img = new Image(); img.src = c.toDataURL("image/png");
+        const btn = document.createElement('button'); btn.className = 'btn btn-export';
+        btn.style.width="100%"; btn.textContent = `Sauvegarder Page ${idx+1}`;
+        btn.onclick = () => {
+            const w = window.open("");
+            w.document.write("<body style='margin:0;background:black;display:flex;justify-content:center;align-items:center;'><img src='"+img.src+"' style='max-width:100%;'><p style='color:white;position:fixed;bottom:20px;font-family:sans-serif;'>Appui long pour enregistrer</p></body>");
+        };
+        item.appendChild(img); item.appendChild(btn); list.appendChild(item);
+    });
+    $('modal').style.display = 'flex';
+};
+</script>
+</body>
+</html>
