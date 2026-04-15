@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>STENCIL PRO MASTERS 🖤</title>
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --pink: #ff007a; --cyan: #00f2ff; --green: #39ff14; --dark: #0a0a0f; --panel: #161625; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Oswald', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background: var(--dark); color: #eee; padding-bottom: 30px; }
+        header { padding: 15px; background: #000; border-bottom: 2px solid var(--pink); display: flex; justify-content: space-between; align-items: center; }
+        h1 { font-size: 1.3rem; color: #fff; text-transform: uppercase; }
+        .maman-sokal { color: var(--pink); font-weight: 500; }
+        
+        .main-nav { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; padding: 10px; background: rgba(0,0,0,0.9); position: sticky; top: 0; z-index: 100; }
+        .btn { padding: 12px; border-radius: 6px; border: none; font-weight: 700; font-size: 0.9rem; text-transform: uppercase; cursor: pointer; text-align: center; color: #000; }
+        .btn-load { background: var(--cyan); }
+        .btn-reset { background: #444; color: #fff; }
+        .btn-exp { background: var(--green); }
+
+        .control-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; }
+        .panel { background: var(--panel); padding: 12px; border-radius: 10px; border: 1px solid #2d2d44; }
+        .full { grid-column: span 2; }
+        
+        label { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--cyan); margin-bottom: 5px; text-transform: uppercase; font-weight: 600; }
+        .adj-row { display: flex; align-items: center; gap: 8px; margin-top: 5px; }
+        .plus-minus { background: #000; color: #fff; border: 1px solid var(--pink); padding: 8px 12px; border-radius: 5px; font-weight: 700; font-size: 1.2rem; min-width: 45px; cursor: pointer; }
+        
+        select { width: 100%; background: #000; color: #fff; border: 1px solid #444; padding: 12px; border-radius: 6px; font-size: 0.9rem; }
+        input[type=range] { flex: 1; accent-color: var(--pink); height: 25px; }
+
+        .d-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 140px; margin: 10px auto; }
+        .dp-btn { background: #000; border: 1px solid #333; color: var(--cyan); padding: 15px; border-radius: 8px; font-size: 1.2rem; cursor: pointer; }
+
+        .preview-area { background: #fff; margin: 15px; border: 2px solid #333; overflow: hidden; }
+        canvas { display: block; max-width: 100%; height: auto; margin: 0 auto; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>STENCIL PRO MASTERS</h1>
+    <div class="maman-sokal">Maman Sokal 🖤</div>
+</header>
+
+<div class="main-nav">
+    <label for="fIn" class="btn btn-load">✦ IMPORTER</label>
+    <input type="file" id="fIn" accept="image/*" style="display:none">
+    <button class="btn btn-reset" onclick="location.reload()">EFFACER</button>
+    <button class="btn btn-exp" id="btnExp">EXPORTER HR</button>
+</div>
+
+<div class="control-grid">
+    <div class="panel full">
+        <label>MODE DE RENDU GLOBAL</label>
+        <select id="renderStyle">
+            <option value="original">IMAGE ORIGINALE (Photo brute)</option>
+            <option value="dotwork">POINTILLISME HD (Dotwork)</option>
+            <option value="shades">RÉALISME (Gris Doux)</option>
+            <option value="bold">LIGNES NETTES (Flash)</option>
+        </select>
+    </div>
+
+    <div class="panel full">
+        <label>NETTETÉ / PRÉCISION <span id="vSharp">0</span></label>
+        <div class="adj-row">
+            <button class="plus-minus" onclick="adj('sharp', -5)">-</button>
+            <input type="range" id="sharp" min="0" max="100" value="0">
+            <button class="plus-minus" onclick="adj('sharp', 5)">+</button>
+        </div>
+    </div>
+
+    <div class="panel full">
+        <label>INTENSITÉ DU NOIR <span id="vBlack">128</span></label>
+        <div class="adj-row">
+            <button class="plus-minus" onclick="adj('black', -10)">-</button>
+            <input type="range" id="black" min="0" max="255" value="128">
+            <button class="plus-minus" onclick="adj('black', 10)">+</button>
+        </div>
+    </div>
+
+    <div class="panel full">
+        <label>LUMINOSITÉ <span id="vBright">0</span></label>
+        <div class="adj-row">
+            <button class="plus-minus" onclick="adj('bright', -10)">-</button>
+            <input type="range" id="bright" min="-100" max="100" value="0">
+            <button class="plus-minus" onclick="adj('bright', 10)">+</button>
+        </div>
+    </div>
+
+    <div class="panel">
+        <label>TAILLE <span id="vSize">100%</span></label>
+        <div class="adj-row">
+            <button class="plus-minus" onclick="adj('size', -10)">-</button>
+            <input type="range" id="size" min="10" max="250" value="100">
+            <button class="plus-minus" onclick="adj('size', 10)">+</button>
+        </div>
+    </div>
+    <div class="panel">
+        <label>MIROIR (FLIP)</label>
+        <select id="mirror">
+            <option value="1">NON</option>
+            <option value="-1">OUI (STENCIL)</option>
+        </select>
+    </div>
+
+    <div class="panel full">
+        <label>POSITION (D-PAD)</label>
+        <div class="d-pad">
+            <div></div><button class="dp-btn" onclick="move(0,-40)">▲</button><div></div>
+            <button class="dp-btn" onclick="move(-40,0)">◀</button>
+            <button class="dp-btn" onclick="st.x=0;st.y=0;render()">◎</button>
+            <button class="dp-btn" onclick="move(40,0)">▶</button>
+            <div></div><button class="dp-btn" onclick="move(0,40)">▼</button><div></div>
+        </div>
+    </div>
+</div>
+
+<div class="preview-area">
+    <canvas id="gCanvas"></canvas>
+</div>
+
+<script>
+    const $ = id => document.getElementById(id);
+    const cv = $('gCanvas'), ctx = cv.getContext('2d', { willReadFrequently: true });
+    let img = null;
+    let st = { x:0, y:0, size:100, black:128, bright:0, sharp:0, mirror:1, style:'original' };
+
+    $('fIn').onchange = e => {
+        const reader = new FileReader();
+        reader.onload = ev => {
+            img = new Image();
+            img.onload = () => { render(); };
+            img.src = ev.target.result;
+        };
+        reader.readAsDataURL(e.target.files[0]);
+    };
+
+    function adj(id, delta) {
+        let val = parseFloat($(id).value) + delta;
+        $(id).value = val;
+        st[id] = val;
+        render();
+    }
+
+    function move(dx, dy) { st.x += dx; st.y += dy; render(); }
+
+    function render() {
+        if(!img) return;
+        cv.width = 2480; cv.height = 3508; 
+        ctx.fillStyle = "white"; ctx.fillRect(0,0,cv.width,cv.height);
+
+        ctx.save();
+        ctx.translate(cv.width/2 + st.x, cv.height/2 + st.y);
+        ctx.scale(st.mirror, 1);
+        let dw = cv.width * (st.size/100), dh = dw * (img.height/img.width);
+        ctx.drawImage(img, -dw/2, -dh/2, dw, dh);
+        ctx.restore();
+
+        if (st.style !== 'original') applyFilters();
+        updateLabels();
+    }
+
+    function applyFilters() {
+        const idata = ctx.getImageData(0,0,cv.width,cv.height), d = idata.data;
+        const b = parseInt(st.bright);
+        // Traitement simplifié pour éviter les crashs sur mobile
+        for (let i = 0; i < d.length; i += 4) {
+            let gray = (d[i] + d[i+1] + d[i+2]) / 3 + b;
+            if (st.style === 'bold') gray = gray < st.black ? 0 : 255;
+            else if (st.style === 'dotwork') {
+                let x = (i/4)%cv.width, y = Math.floor((i/4)/cv.width);
+                let thr = ((x % 4) * 4 + (y % 4)) * 16;
+                gray = gray < (st.black * (thr/255)) ? 0 : 255;
+            } else if (st.style === 'shades') {
+                gray = gray < st.black ? (gray < st.black/2 ? 0 : 160) : 255;
+            }
+            d[i] = d[i+1] = d[i+2] = gray;
+        }
+        ctx.putImageData(idata, 0,0);
+    }
+
+    function updateLabels() {
+        $('vSharp').textContent = st.sharp;
+        $('vBlack').textContent = st.black;
+        $('vBright').textContent = st.bright;
+        $('vSize').textContent = st.size + "%";
+    }
+
+    ['sharp','black','bright','size'].forEach(id => {
+        $(id).oninput = e => { st[id] = parseFloat(e.target.value); render(); };
+    });
+    $('renderStyle').onchange = e => { st.style = e.target.value; render(); };
+    $('mirror').onchange = e => { st.mirror = parseInt(e.target.value); render(); };
+    $('btnExp').onclick = () => {
+        const a = document.createElement('a');
+        a.download = 'Stencil_Pro_Final.png';
+        a.href = cv.toDataURL(); a.click();
+    };
+</script>
+</body>
+</html>
