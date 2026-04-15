@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Stencil Print Pro | Maman Sokal 🖤</title>
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --pink: #ff007a; --cyan: #00f2ff; --green: #39ff14; --dark: #0a0a0f; --panel: #161625; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Oswald', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background: var(--dark); color: #eee; padding-bottom: 50px; }
+        header { padding: 10px 15px; background: #000; border-bottom: 2px solid var(--pink); display: flex; justify-content: space-between; align-items: center; }
+        .main-nav { display: grid; grid-template-columns: 2fr 1.5fr 2fr; gap: 8px; padding: 10px; background: rgba(0,0,0,0.95); position: sticky; top: 0; z-index: 1000; border-bottom: 1px solid #333; }
+        .btn { padding: 12px; border-radius: 6px; border: none; font-weight: 700; font-size: 0.75rem; text-transform: uppercase; cursor: pointer; text-align: center; color: #000; }
+        .btn-load { background: var(--cyan); }
+        .btn-reset { background: #444; color: #fff; }
+        .btn-exp { background: var(--green); }
+        
+        .grid-selector { display: flex; gap: 3px; padding: 10px; background: #000; justify-content: space-between; }
+        .grid-btn { flex: 1; padding: 10px 1px; background: #111; border: 1px solid var(--pink); color: #fff; border-radius: 4px; font-size: 0.6rem; cursor: pointer; white-space: nowrap; }
+        .grid-btn.active { background: var(--pink); color: #000; }
+
+        .control-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px; }
+        .panel { background: var(--panel); padding: 10px; border-radius: 8px; border: 1px solid #2d2d44; }
+        .full { grid-column: span 2; }
+        label { display: flex; justify-content: space-between; font-size: 0.65rem; color: var(--cyan); margin-bottom: 4px; text-transform: uppercase; }
+        .adj-row { display: flex; align-items: center; gap: 5px; }
+        .plus-minus { background: #000; color: #fff; border: 1px solid var(--pink); padding: 8px 12px; border-radius: 4px; font-weight: 700; cursor: pointer; min-width: 40px; }
+        input[type=range], select { width: 100%; accent-color: var(--pink); background: #000; color: #fff; border: 1px solid #444; border-radius: 4px; padding: 8px; font-size: 0.8rem; }
+        
+        .pos-controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; width: 110px; margin: 0 auto; }
+        .btn-pos { background: #000; color: var(--pink); border: 1px solid var(--pink); padding: 8px; border-radius: 4px; font-weight: bold; cursor: pointer; }
+        .btn-auto { background: var(--pink); color: #000; border: none; padding: 14px; border-radius: 6px; font-weight: 700; width: 100%; text-transform: uppercase; cursor: pointer; margin-bottom: 8px; }
+        
+        .preview-container { background: #111; padding: 20px; overflow: auto; display: flex; flex-direction: column; align-items: center; min-height: 500px; }
+        .pages-wrapper { display: grid; gap: 15px; background: #222; padding: 15px; border-radius: 4px; transform-origin: top center; transition: transform 0.2s ease; }
+        
+        .a4-page { background: white; box-shadow: 0 0 15px rgba(0,0,0,0.8); position: relative; }
+        .portrait { width: 210px; height: 297px; }
+        .landscape { width: 297px; height: 210px; }
+        canvas { width: 100%; height: 100%; display: block; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1 style="font-size: 1.1rem;">STENCIL PRINT PRO</h1>
+    <div style="color: var(--pink); font-size: 0.8rem;">Maman Sokal 🖤</div>
+</header>
+
+<div class="main-nav">
+    <label for="fIn" class="btn btn-load">✦ IMPORTER</label>
+    <input type="file" id="fIn" accept="image/*" style="display:none">
+    <button class="btn btn-reset" onclick="location.reload()">RESET</button>
+    <button class="btn btn-exp" id="btnExp">EXPORTER</button>
+</div>
+
+<div class="grid-selector">
+    <button class="grid-btn active" data-grid="1">1 PAGE</button>
+    <button class="grid-btn" data-grid="2">2 (2x1)</button>
+    <button class="grid-btn" data-grid="4">4 (2x2)</button>
+    <button class="grid-btn" data-grid="6">6 (2x3)</button>
+    <button class="grid-btn" data-grid="9">9 (3x3)</button>
+    <button class="grid-btn" data-grid="12">12 (3x4)</button>
+</div>
+
+<div class="control-grid">
+    <div class="panel full">
+        <button class="btn-auto" onclick="autoFit()">🎯 AJUSTER & CENTRER AU GABARIT</button>
+    </div>
+
+    <div class="panel">
+        <label>ORIENTATION A4</label>
+        <select id="orient" onchange="st.orient=this.value; updateGridUI()" style="margin-bottom: 15px;">
+            <option value="portrait">PORTRAIT (V)</option>
+            <option value="landscape">PAYSAGE (H)</option>
+        </select>
+
+        <label>LUMINOSITÉ <span id="vBright">0</span></label>
+        <div class="adj-row">
+            <button class="plus-minus" onclick="adj('bright', -5)">-</button>
+            <input type="range" id="bright" min="-100" max="100" value="0" oninput="st.bright=this.value; render()">
+            <button class="plus-minus" onclick="adj('bright', 5)">+</button>
+        </div>
+    </div>
+
+    <div class="panel">
+        <label>DÉPLACER DESSIN</label>
+        <div class="pos-controls">
+            <div></div><button class="btn-pos" onclick="move(0,-25)">▲</button><div></div>
+            <button class="btn-pos" onclick="-25,0)">◀</button>
+            <button class="btn-pos" onclick="resetPos()">●</button>
+            <button class="btn-pos" onclick="move(25,0)">▶</button>
+            <div></div><button class="btn-pos" onclick="move(0,25)">▼</button><div></div>
+        </div>
+    </div>
+
+    <div class="panel">
+        <label>STYLE DE RENDU</label>
+        <select id="renderStyle" onchange="st.style=this.value; render()">
+            <option value="original">IMAGE ORIGINELLE</option>
+            <option value="impression">IMPRESSION CLASSIQUE</option>
+            <option value="realiste">STYLE RÉALISTE</option>
+            <option value="douceur">DOUCEUR / OMBRAGES</option>
+            <option value="dotwork">STYLE DOTWORK</option>
+        </select>
+    </div>
+
+    <div class="panel">
+        <label>ZOOM GABARIT <span id="vZoom">100%</span></label>
+        <div class="adj-row">
+            <button class="plus-minus" onclick="adjZoom(-0.1)">-</button>
+            <input type="range" id="zoom" min="0.1" max="1.2" step="0.1" value="1" oninput="updateZoom(this.value)">
+            <button class="plus-minus" onclick="adjZoom(0.1)">+</button>
+        </div>
+    </div>
+
+    <div class="panel">
+        <label>INTENSITÉ STYLE <span id="vPower">50%</span></label>
+        <div class="adj-row">
+            <button class="plus-minus" onclick="adj('power', -5)">-</button>
+            <input type="range" id="power" min="0" max="100" value="50" oninput="st.power=this.value; render()">
+            <button class="plus-minus" onclick="adj('power', 5)">+</button>
+        </div>
+    </div>
+
+    <div class="panel">
+        <label>CONTRASTE (SEUIL) <span id="vBlack">128</span></label>
+        <div class="adj-row">
+            <button class="plus-minus" onclick="adj('black', -10)">-</button>
+            <input type="range" id="black" min="1" max="254" value="128" oninput="st.black=this.value; render()">
+            <button class="plus-minus" onclick="adj('black', 10)">+</button>
+        </div>
+    </div>
+
+    <div class="panel full">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <div>
+                <label>TAILLE IMAGE <span id="vSize">100%</span></label>
+                <div class="adj-row">
+                    <button class="plus-minus" onclick="adj('size', -10)">-</button>
+                    <input type="range" id="size" min="10" max="1000" value="100" oninput="st.size=this.value; render()">
+                    <button class="plus-minus" onclick="adj('size', 10)">+</button>
+                </div>
+            </div>
+            <div>
+                <label>NETTETÉ LIGNES <span id="vSharp">50%</span></label>
+                <div class="adj-row">
+                    <button class="plus-minus" onclick="adj('sharp', -5)">-</button>
+                    <input type="range" id="sharp" min="0" max="100" value="50" oninput="st.sharp=this.value; render()">
+                    <button class="plus-minus" onclick="adj('sharp', 5)">+</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="preview-container">
+    <div class="pages-wrapper" id="pagesWrapper"></div>
+</div>
+
+<script>
+    const $ = id => document.getElementById(id);
+    let img = null;
+    let st = { size: 100, black: 128, bright: 0, grid: 1, style: 'original', power: 50, sharp: 50, orient: 'portrait', offX: 0, offY: 0 };
+
+    function updateGridUI() {
+        const wrapper = $('pagesWrapper');
+        wrapper.innerHTML = '';
+        let cols = (st.grid === 2 || st.grid === 4 || st.grid === 6) ? 2 : (st.grid >= 9 ? 3 : 1);
+        wrapper.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+        for(let i=0; i < st.grid; i++) {
+            const page = document.createElement('div');
+            page.className = `a4-page ${st.orient}`;
+            page.innerHTML = `<canvas id="cv-${i}"></canvas>`;
+            wrapper.appendChild(page);
+        }
+        render();
+    }
+
+    function render() {
+        if(!img) return;
+        const canvases = document.querySelectorAll('canvas');
+        const isPort = st.orient === 'portrait';
+        const W = isPort ? 2480 : 3508;
+        const H = isPort ? 3508 : 2480;
+        let cols = (st.grid === 2 || st.grid === 4 || st.grid === 6) ? 2 : (st.grid >= 9 ? 3 : 1);
+        const rows = Math.ceil(st.grid / cols);
+
+        canvases.forEach((cv, i) => {
+            cv.width = W; cv.height = H;
+            const ctx = cv.getContext('2d');
+            ctx.fillStyle = "white"; ctx.fillRect(0,0,W,H);
+            ctx.save();
+            ctx.translate(-(i % cols) * W, -Math.floor(i / cols) * H);
+            ctx.translate((cols * W)/2 + st.offX, (rows * H)/2 + st.offY);
+            let dw = W * (st.size/100), dh = dw * (img.height/img.width);
+            ctx.drawImage(img, -dw/2, -dh/2, dw, dh);
+            ctx.restore();
+            if (st.style !== 'original') applySokalFilters(ctx, W, H);
+        });
+        updateLabels();
+    }
+
+    function applySokalFilters(ctx, w, h) {
+        const idata = ctx.getImageData(0,0,w,h);
+        const d = idata.data;
+        const p = st.power / 100;
+        const s = (st.sharp || 50) / 100; 
+        const bVal = parseInt(st.bright);
+
+        for (let j = 0; j < d.length; j += 4) {
+            let r = d[j], g_col = d[j+1], b = d[j+2];
+            let g = (r + g_col + b) / 3; 
+
+            // Luminosité
+            g = Math.max(0, Math.min(255, g + bVal));
+
+            // Boost Netteté pré-filtre
+            if (g < 160) { g = g * (1 - (s * 0.4)); }
+
+            if (st.style === 'dotwork') {
+                let x = (j/4) % w, y = Math.floor((j/4) / w);
+                let matrix = [[15, 135, 45, 165],[195, 75, 225, 105],[60, 180, 30, 150],[240, 120, 210, 90]];
+                let threshold = matrix[x % 4][y % 4] * (2 - p);
+                g = g < threshold ? 0 : 255;
+            } else if (st.style === 'realiste') {
+                // Réaliste : S'adapte à Intensité (noircit) et Netteté (nettoie blancs)
+                if (g < st.black) {
+                    g = g * (1 - (p * 0.8)); 
+                } else {
+                    g = (g * (1 - s)) + 255 * s;
+                }
+            } else if (st.style === 'douceur') {
+                let shadow = g + ((255 - g) * (1 - p));
+                let line = g < st.black ? 0 : 255;
+                g = (shadow * (1 - s)) + (line * s);
+            } else if (st.style === 'impression') {
+                let edgeControl = (st.black * s) + (g * (1 - s));
+                g = edgeControl < st.black ? 0 : 255;
+            }
+            d[j] = d[j+1] = d[j+2] = g;
+        }
+        ctx.putImageData(idata, 0, 0);
+    }
+
+    function move(x, y) { st.offX += x; st.offY += y; render(); }
+    function resetPos() { st.offX = 0; st.offY = 0; render(); }
+    
+    function updateZoom(val) { 
+        $('pagesWrapper').style.transform = `scale(${val})`; 
+        $('vZoom').textContent = Math.round(val * 100) + "%"; 
+    }
+    function adjZoom(delta) {
+        let n = parseFloat($('zoom').value) + delta;
+        n = Math.max(0.1, Math.min(1.2, n));
+        $('zoom').value = n; updateZoom(n);
+    }
+
+    function autoFit() {
+        if(!img) return;
+        let cols = (st.grid === 2 || st.grid === 4 || st.grid === 6) ? 2 : (st.grid >= 9 ? 3 : 1);
+        st.size = (cols * 100);
+        $('size').value = st.size;
+        resetPos();
+        render();
+    }
+
+    function updateLabels() {
+        $('vSize').textContent = Math.round(st.size) + "%";
+        $('vBlack').textContent = st.black;
+        $('vPower').textContent = st.power + "%";
+        $('vSharp').textContent = st.sharp + "%";
+        $('vBright').textContent = st.bright;
+    }
+
+    function adj(id, delta) {
+        let input = $(id);
+        let newVal = parseFloat(st[id]) + delta;
+        st[id] = Math.max(input.min, Math.min(input.max, newVal));
+        input.value = st[id];
+        render();
+    }
+
+    $('fIn').onchange = e => {
+        const reader = new FileReader();
+        reader.onload = ev => {
+            img = new Image();
+            img.onload = () => render();
+            img.src = ev.target.result;
+        };
+        reader.readAsDataURL(e.target.files[0]);
+    };
+
+    document.querySelectorAll('.grid-btn').forEach(btn => {
+        btn.onclick = () => {
+            document.querySelector('.grid-btn.active').classList.remove('active');
+            btn.classList.add('active');
+            st.grid = parseInt(btn.dataset.grid);
+            updateGridUI();
+        };
+    });
+
+    $('btnExp').onclick = () => {
+        document.querySelectorAll('canvas').forEach((cv, i) => {
+            const link = document.createElement('a');
+            link.download = `Stencil_Sokal_P${i+1}.png`;
+            link.href = cv.toDataURL();
+            link.click();
+        });
+    };
+    updateGridUI();
+</script>
+</body>
+</html>
