@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Stencil Print Pro | Art & Précision</title>
+<link href="https://fonts.googleapis.com/css2?family=Rye&family=Oswald:wght@300;500;700&display=swap" rel="stylesheet">
+<style>
+:root { --pink: #ff007a; --blue: #00f2ff; --yellow: #fff200; --bg: #0d0d12; --card: #16161f; }
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Oswald', sans-serif; }
+body { background: var(--bg); color: #fff; padding-bottom: 40px; }
+
+/* Header & Logo */
+header { padding: 20px; text-align: center; background: #000; border-bottom: 2px solid var(--pink); display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 10px; }
+.logo-white { height: 45px; filter: invert(1) brightness(2); }
+h1 { font-family: 'Rye'; color: #fff; text-shadow: 0 0 10px var(--pink); font-size: 1.5rem; }
+
+/* Barre d'outils principale */
+.toolbar { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 15px; position: sticky; top: 0; z-index: 100; background: rgba(0,0,0,0.9); border-bottom: 1px solid var(--blue); }
+.btn { padding: 12px; border-radius: 10px; border: 2px solid; font-weight: bold; text-transform: uppercase; cursor: pointer; text-align: center; background: transparent; font-size: 0.9rem; }
+.btn-import { color: var(--pink); border-color: var(--pink); }
+.btn-export { color: var(--blue); border-color: var(--blue); }
+
+/* Contrôles de l'image */
+.control-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 10px; }
+.panel { background: var(--card); padding: 12px; border-radius: 12px; border: 1px solid #2a2a35; }
+.full-width { grid-column: span 2; }
+label { display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--yellow); text-transform: uppercase; margin-bottom: 8px; font-weight: 500; }
+input[type=range] { width: 100%; accent-color: var(--pink); height: 6px; }
+select, button.sub-btn { background: #000; color: #fff; border: 1px solid #444; padding: 8px; border-radius: 6px; width: 100%; font-size: 0.8rem; }
+
+/* D-Pad Déplacement */
+.dpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; width: 120px; margin: 0 auto; }
+.dbtn { background: #222; border: 1px solid var(--blue); color: var(--blue); padding: 8px; border-radius: 5px; cursor: pointer; }
+.dbtn:active { background: var(--blue); color: #000; }
+
+/* Zone de rendu */
+.preview-area { padding: 20px; text-align: center; background: #050505; margin: 10px 0; border-top: 1px dashed #333; border-bottom: 1px dashed #333; }
+.gabarit-box { position: relative; display: inline-grid; background: #111; border: 1px solid #444; overflow: hidden; }
+#gabaritCanvas { position: absolute; top: 0; left: 0; pointer-events: none; }
+.page-line { border: 1px solid rgba(255, 255, 255, 0.1); pointer-events: none; z-index: 2; }
+
+/* Footer */
+footer { text-align: center; padding: 20px; font-size: 0.7rem; color: #555; text-transform: uppercase; letter-spacing: 1px; }
+
+/* Modal Export */
+#modal { display: none; position: fixed; inset: 0; background: #000; z-index: 1000; padding: 20px; flex-direction: column; overflow-y: auto; }
+</style>
+</head>
+<body>
+
+<header>
+    <img src="https://i.postimg.cc/CR9ZXgKy/CR9ZXgKy.png" class="logo-white" alt="Sokal Studio">
+    <div>
+        <h1>Maman Sokal</h1>
+        <p style="font-size: 0.6rem; color: var(--blue); letter-spacing: 2px;">ART & PRÉCISION STUDIO</p>
+    </div>
+</header>
+
+<div class="toolbar">
+    <label for="fIn" class="btn btn-import">✦ Importer</label>
+    <input type="file" id="fIn" accept="image/*" style="display:none">
+    <button class="btn btn-export" id="btnExp" disabled>⬇ Exporter HR</button>
+</div>
+
+<div style="display: flex; justify-content: space-around; padding: 5px 15px;">
+    <button class="sub-btn" style="width: 45%; color: var(--yellow);" id="btnUndo">↶ Annuler</button>
+    <button class="sub-btn" style="width: 45%; color: #ff3131;" onclick="location.reload()">✕ Reset</button>
+</div>
+
+<div class="control-grid">
+    <div class="panel full-width">
+        <label>Trait & Shades <span>Mode: <b id="vMode">Coloriage</b></span></label>
+        <div style="display: flex; gap: 10px;">
+            <button class="sub-btn" onclick="updateMode('liner')">Livre Coloriage</button>
+            <button class="sub-btn" onclick="updateMode('shades')">Ombrages / Fumée</button>
+        </div>
+    </div>
+
+    <div class="panel">
+        <label>Détails / Finesse <span id="vDetail">150</span></label>
+        <input type="range" id="detail" min="50" max="250" value="150">
+    </div>
+    <div class="panel">
+        <label>Densité Noirs <span id="vBlack">100</span></label>
+        <input type="range" id="black" min="50" max="250" value="100">
+    </div>
+
+    <div class="panel">
+        <label>Taille <span id="vSize">100%</span></label>
+        <input type="range" id="size" min="10" max="600" value="100">
+    </div>
+    <div class="panel">
+        <label>Rotation <span id="vRot">0°</span></label>
+        <input type="range" id="rot" min="0" max="360" value="0">
+    </div>
+
+    <div class="panel">
+        <label>Position</label>
+        <div class="dpad">
+            <div Riz></div><button class="dbtn" onclick="move('u')">▲</button><div></div>
+            <button class="dbtn" onclick="move('l')">◀</button>
+            <button class="dbtn" onclick="move('c')">●</button>
+            <button class="dbtn" onclick="move('r')">▶</button>
+            <div></div><button class="dbtn" onclick="move('d')">▼</button><div></div>
+        </div>
+    </div>
+
+    <div class="panel">
+        <label>Montage (A4)</label>
+        <select id="pages">
+            <option value="1">1 Page</option>
+            <option value="4">4 Pages (2x2)</option>
+            <option value="6">6 Pages (2x3)</option>
+            <option value="9">9 Pages (3x3)</option>
+        </select>
+        <label style="margin-top:10px">Miroir</label>
+        <select id="mirror">
+            <option value="none">Aucun</option>
+            <option value="h">Horizontal (Stencil)</option>
+        </select>
+    </div>
+</div>
+
+<div class="preview-area">
+    <p style="font-size: 0.6rem; color: var(--pink); margin-bottom: 8px;">APERÇU DU MONTAGE COMPLET</p>
+    <div id="gabarit" class="gabarit-box">
+        <canvas id="gabaritCanvas"></canvas>
+    </div>
+</div>
+
+<div id="pagesZone" style="display:none"></div>
+
+<footer>Création par Cynthia Audet Grondin - Artiste Maman Sokal</footer>
+
+<div id="modal">
+    <button class="btn btn-import" style="margin-bottom:20px" onclick="$('modal').style.display='none'">✕ Retour au Studio</button>
+    <div id="expList" style="display: flex; flex-direction: column; gap: 20px;"></div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let state = { img: null, size: 100, rot: 0, offX: 0, offY: 0, pages: 1, black: 100, detail: 150, mode: 'liner', mirror: 'none' };
+let history = [];
+const A4W = 794, A4H = 1123;
+
+$('fIn').onchange = (e) => {
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        const i = new Image();
+        i.onload = () => { state.img = i; $('btnExp').disabled = false; render(); };
+        i.src = ev.target.result;
+    };
+    reader.readAsDataURL(e.target.files[0]);
+};
+
+function updateMode(m) {
+    state.mode = m;
+    $('vMode').textContent = m === 'liner' ? 'Coloriage' : 'Ombrages';
+    render();
+}
+
+function move(dir) {
+    const step = 20;
+    if(dir === 'u') state.offY -= step;
+    if(dir === 'd') state.offY += step;
+    if(dir === 'l') state.offX -= step;
+    if(dir === 'r') state.offX += step;
+    if(dir === 'c') { state.offX = 0; state.offY = 0; }
+    render();
+}
+
+['size', 'rot', 'black', 'detail'].forEach(id => {
+    $(id).oninput = (e) => {
+        state[id] = parseInt(e.target.value);
+        let label = id === 'size' ? e.target.value+'%' : (id === 'rot' ? e.target.value+'°' : e.target.value);
+        $('v' + id.charAt(0).toUpperCase() + id.slice(1)).textContent = label;
+        render();
+    };
+});
+
+$('pages').onchange = (e) => { state.pages = parseInt(e.target.value); render(); };
+$('mirror').onchange = (e) => { state.mirror = e.target.value; render(); };
+
+function applyTattooFilter(ctx, w, h) {
+    const idat = ctx.getImageData(0, 0, w, h);
+    const d = idat.data;
+    const thresh = state.detail;
+    const contrast = (259 * (state.black + 255)) / (255 * (259 - state.black));
+
+    for (let i = 0; i < d.length; i += 4) {
+        let avg = (d[i] + d[i+1] + d[i+2]) / 3;
+        // Application contraste
+        let res = contrast * (avg - 128) + 128;
+        
+        let val;
+        if (state.mode === 'liner') {
+            // Mode Coloriage : Net et tranché
+            val = res < thresh ? 0 : 255;
+        } else {
+            // Mode Ombrages : Dithering pour la fumée et textures
+            val = (res < thresh && res < Math.random() * 255) ? 0 : 255;
+        }
+        d[i] = d[i+1] = d[i+2] = val;
+    }
+    ctx.putImageData(idat, 0, 0);
+}
+
+function render() {
+    if (!state.img) return;
+    const gab = $('gabarit'); const gCanvas = $('gabaritCanvas');
+    gab.querySelectorAll('.page-line').forEach(n => n.remove());
+
+    let cols = state.pages === 1 ? 1 : (state.pages <= 6 ? 2 : 3);
+    let rows = Math.ceil(state.pages / cols);
+    const s = 0.25; // Scale aperçu
+
+    gab.style.gridTemplateColumns = `repeat(${cols}, ${A4W * s}px)`;
+    gab.style.height = (A4H * rows * s) + "px";
+    for(let i=0; i<state.pages; i++) {
+        let p = document.createElement('div'); p.className = 'page-line';
+        p.style.width = (A4W * s) + "px"; p.style.height = (A4H * s) + "px";
+        gab.appendChild(p);
+    }
+
+    gCanvas.width = A4W * cols * s; gCanvas.height = A4H * rows * s;
+    const ctx = gCanvas.getContext('2d');
+    ctx.clearRect(0,0,gCanvas.width, gCanvas.height);
+    
+    ctx.save();
+    ctx.translate(gCanvas.width/2 + state.offX*s, gCanvas.height/2 + state.offY*s);
+    ctx.rotate(state.rot * Math.PI / 180);
+    if(state.mirror === 'h') ctx.scale(-1, 1);
+    
+    const dw = (A4W * cols * (state.size/100)) * s;
+    const dh = dw * (state.img.height / state.img.width);
+    ctx.drawImage(state.img, -dw/2, -dh/2, dw, dh);
+    ctx.restore();
+}
+
+$('btnExp').onclick = () => {
+    const list = $('expList'); list.innerHTML = '';
+    let cols = state.pages === 1 ? 1 : (state.pages <= 6 ? 2 : 3);
+    let rows = Math.ceil(state.pages / cols);
+
+    for (let i = 0; i < state.pages; i++) {
+        const cv = document.createElement('canvas');
+        cv.width = A4W; cv.height = A4H;
+        const ctx = cv.getContext('2d');
+        ctx.fillStyle = "white"; ctx.fillRect(0,0,A4W,A4H);
+
+        let col = i % cols; let row = Math.floor(i / cols);
+        ctx.save();
+        ctx.translate(A4W/2 + state.offX - (col * A4W) + (cols-1)*A4W/2, A4H/2 + state.offY - (row * A4H) + (rows-1)*A4H/2);
+        ctx.rotate(state.rot * Math.PI / 180);
+        if(state.mirror === 'h') ctx.scale(-1, 1);
+
+        const dw = A4W * cols * (state.size/100);
+        const dh = dw * (state.img.height / state.img.width);
+        ctx.drawImage(state.img, -dw/2, -dh/2, dw, dh);
+        ctx.restore();
+
+        applyTattooFilter(ctx, A4W, A4H);
+        
+        const img = new Image(); img.src = cv.toDataURL("image/png");
+        img.style.width = "100%"; img.style.border = "2px solid var(--blue)";
+        const btn = document.createElement('button'); btn.className = "btn btn-export";
+        btn.textContent = "Télécharger Page " + (i+1);
+        btn.onclick = () => { let w = window.open(""); w.document.write("<img src='"+img.src+"' style='width:100%'>"); };
+        
+        list.appendChild(img); list.appendChild(btn);
+    }
+    $('modal').style.display = 'flex';
+};
+</script>
+</body>
+</html>
