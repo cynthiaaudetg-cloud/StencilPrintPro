@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Stencil Print Pro | Studio Maman Sokal</title>
+<link href="https://fonts.googleapis.com/css2?family=Rye&family=Oswald:wght@300;500;700&display=swap" rel="stylesheet">
+<style>
+:root { --pink: #ff007a; --blue: #00f2ff; --yellow: #fff200; --bg: #0d0d12; --card: #16161f; }
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Oswald', sans-serif; }
+body { background: var(--bg); color: #fff; padding-bottom: 50px; }
+
+header { padding: 15px; text-align: center; background: #000; border-bottom: 3px solid var(--pink); display: flex; align-items: center; justify-content: center; gap: 15px; }
+.logo-s { height: 45px; border-radius: 5px; }
+h1 { font-family: 'Rye'; color: #fff; text-shadow: 0 0 10px var(--pink); font-size: 1.4rem; }
+
+.toolbar { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 15px; position: sticky; top: 0; z-index: 100; background: rgba(0,0,0,0.95); border-bottom: 1px solid var(--blue); }
+.btn { padding: 12px; border-radius: 10px; border: 2px solid; font-weight: bold; text-transform: uppercase; cursor: pointer; text-align: center; background: transparent; }
+.btn-in { color: var(--pink); border-color: var(--pink); }
+.btn-out { color: var(--blue); border-color: var(--blue); }
+.btn-reset { color: #ff3131; border-color: #ff3131; grid-column: span 2; margin-top: 5px; padding: 5px; font-size: 0.7rem; }
+
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 15px; }
+.panel { background: var(--card); padding: 12px; border-radius: 12px; border: 1px solid #2a2a35; }
+.full { grid-column: span 2; }
+label { display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--yellow); text-transform: uppercase; margin-bottom: 8px; }
+input[type=range] { width: 100%; accent-color: var(--pink); }
+select { background: #000; color: #fff; border: 1px solid #444; padding: 8px; border-radius: 6px; width: 100%; font-size: 0.8rem; }
+
+.btn-mode { padding: 10px; border: 1px solid #444; background: #000; color: #fff; border-radius: 6px; font-size: 0.75rem; flex: 1; cursor: pointer; }
+.btn-mode.active { border-color: var(--blue); color: var(--blue); box-shadow: 0 0 8px var(--blue); }
+
+.preview-box { padding: 20px; text-align: center; background: #050505; min-height: 200px; }
+.gabarit { position: relative; display: inline-grid; background: #111; border: 1px solid #444; overflow: hidden; }
+#gCanvas { position: absolute; top: 0; left: 0; pointer-events: none; }
+.page-border { border: 1px solid rgba(255, 255, 255, 0.1); z-index: 2; pointer-events: none; }
+
+footer { text-align: center; padding: 30px; font-size: 0.65rem; color: #666; text-transform: uppercase; }
+#modal { display: none; position: fixed; inset: 0; background: #000; z-index: 1000; padding: 20px; flex-direction: column; overflow-y: auto; }
+</style>
+</head>
+<body>
+
+<header>
+    <img src="https://i.postimg.cc/CR9ZXgKy/CR9ZXgKy.png" class="logo-s">
+    <h1>Maman Sokal</h1>
+</header>
+
+<div class="toolbar">
+    <label for="fIn" class="btn btn-in">✦ Charger</label>
+    <input type="file" id="fIn" accept="image/*" style="display:none">
+    <button class="btn btn-out" id="btnExp" disabled>⬇ Exporter</button>
+    <button class="btn btn-reset" onclick="location.reload()">Réinitialiser tout</button>
+</div>
+
+<div class="grid">
+    <div class="panel full">
+        <label>Style de Rendu</label>
+        <div style="display: flex; gap: 10px;">
+            <button id="mLine" class="btn-mode active" onclick="setMode('liner')">Livre Coloriage</button>
+            <button id="mShade" class="btn-mode" onclick="setMode('shades')">Shades & Fumée</button>
+        </div>
+    </div>
+
+    <div class="panel">
+        <label>Sensibilité <span id="vDetail">130</span></label>
+        <input type="range" id="detail" min="30" max="230" value="130">
+    </div>
+    <div class="panel">
+        <label>Intensité Noir <span id="vBlack">100</span></label>
+        <input type="range" id="black" min="0" max="250" value="100">
+    </div>
+
+    <div class="panel">
+        <label>Taille <span id="vSize">100%</span></label>
+        <input type="range" id="size" min="10" max="500" value="100">
+    </div>
+    <div class="panel">
+        <label>Montage</label>
+        <select id="pages">
+            <option value="1">1 Page (A4)</option>
+            <option value="4">4 Pages (2x2)</option>
+            <option value="6">6 Pages (2x3)</option>
+            <option value="9">9 Pages (3x3)</option>
+        </select>
+    </div>
+</div>
+
+<div class="preview-box">
+    <p style="color: var(--pink); font-size: 0.6rem; margin-bottom: 10px;">APERÇU DU GABARIT</p>
+    <div id="gabarit" class="gabarit">
+        <canvas id="gCanvas"></canvas>
+    </div>
+</div>
+
+<footer>Création par Cynthia Audet Grondin - Artiste Maman Sokal</footer>
+
+<div id="modal">
+    <button class="btn btn-in" style="margin-bottom:20px" onclick="document.getElementById('modal').style.display='none'">✕ Retour</button>
+    <div id="expList" style="display:flex; flex-direction:column; gap:15px;"></div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let state = { img: null, size: 100, black: 100, detail: 130, mode: 'liner', pages: 1 };
+const A4W = 794, A4H = 1123;
+
+$('fIn').onchange = (e) => {
+    const r = new FileReader();
+    r.onload = (ev) => {
+        const i = new Image();
+        i.onload = () => { state.img = i; $('btnExp').disabled = false; render(); };
+        i.src = ev.target.result;
+    };
+    r.readAsDataURL(e.target.files[0]);
+};
+
+function setMode(m) {
+    state.mode = m;
+    $('mLine').classList.toggle('active', m === 'liner');
+    $('mShade').classList.toggle('active', m === 'shades');
+    render();
+}
+
+['size', 'black', 'detail'].forEach(id => {
+    $(id).oninput = (e) => {
+        state[id] = parseInt(e.target.value);
+        $(id === 'size' ? 'vSize' : 'v' + id.charAt(0).toUpperCase() + id.slice(1)).textContent = id === 'size' ? e.target.value+'%' : e.target.value;
+        render();
+    };
+});
+
+$('pages').onchange = (e) => { state.pages = parseInt(e.target.value); render(); };
+
+function filter(ctx, w, h) {
+    const idat = ctx.getImageData(0, 0, w, h);
+    const d = idat.data;
+    const f = (259 * (state.black + 255)) / (255 * (259 - state.black));
+
+    for (let i = 0; i < d.length; i += 4) {
+        let avg = (d[i] + d[i+1] + d[i+2]) / 3;
+        let res = f * (avg - 128) + 128;
+        let val;
+        if (state.mode === 'liner') {
+            val = res < state.detail ? 0 : 255;
+        } else {
+            // Algorithme spécial pour les Shades et la Fumée
+            val = (res < state.detail && res < Math.random() * 255) ? 0 : 255;
+        }
+        d[i] = d[i+1] = d[i+2] = val;
+    }
+    ctx.putImageData(idat, 0, 0);
+}
+
+function render() {
+    if (!state.img) return;
+    const gab = $('gabarit'); const gcv = $('gCanvas');
+    gab.querySelectorAll('.page-border').forEach(n => n.remove());
+
+    let cols = state.pages === 1 ? 1 : (state.pages <= 6 ? 2 : 3);
+    let rows = Math.ceil(state.pages / cols);
+    const s = 0.25;
+
+    gab.style.gridTemplateColumns = `repeat(${cols}, ${A4W * s}px)`;
+    for(let i=0; i<state.pages; i++) {
+        let p = document.createElement('div'); p.className = 'page-border';
+        p.style.width = (A4W * s) + "px"; p.style.height = (A4H * s) + "px";
+        gab.appendChild(p);
+    }
+
+    gcv.width = A4W * cols * s; gcv.height = A4H * rows * s;
+    const ctx = gcv.getContext('2d');
+    const dw = (A4W * cols * (state.size/100)) * s;
+    const dh = dw * (state.img.height / state.img.width);
+    ctx.drawImage(state.img, (gcv.width-dw)/2, (gcv.height-dh)/2, dw, dh);
+}
+
+$('btnExp').onclick = () => {
+    const list = $('expList'); list.innerHTML = '';
+    let cols = state.pages === 1 ? 1 : (state.pages <= 6 ? 2 : 3);
+    let rows = Math.ceil(state.pages / cols);
+
+    for (let i = 0; i < state.pages; i++) {
+        const cv = document.createElement('canvas');
+        cv.width = A4W; cv.height = A4H;
+        const ctx = cv.getContext('2d');
+        ctx.fillStyle = "white"; ctx.fillRect(0,0,A4W,A4H);
+
+        let col = i % cols; let row = Math.floor(i / cols);
+        const dw = A4W * cols * (state.size/100);
+        const dh = dw * (state.img.height / state.img.width);
+        
+        ctx.drawImage(state.img, (A4W * cols - dw)/2 - (col * A4W), (A4H * rows - dh)/2 - (row * A4H), dw, dh);
+        filter(ctx, A4W, A4H);
+        
+        const img = new Image(); img.src = cv.toDataURL("image/png");
+        img.style.width = "100%"; img.style.border = "1px solid #444";
+        const btn = document.createElement('button'); btn.className = "btn btn-out";
+        btn.textContent = "Page " + (i+1);
+        btn.onclick = () => { let w = window.open(""); w.document.write("<img src='"+img.src+"' style='width:100%'>"); };
+        list.appendChild(img); list.appendChild(btn);
+    }
+    $('modal').style.display = 'flex';
+};
+</script>
+</body>
+</html>
