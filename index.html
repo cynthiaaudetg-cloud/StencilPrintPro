@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Stencil Print Pro | Maman Sokal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rye&family=Oswald:wght@300;600&display=swap" rel="stylesheet">
+    <style>
+        :root { --pink: #ff007a; --cyan: #00f2ff; --green: #39ff14; --dark: #0a0a0f; --panel: #161625; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Oswald', sans-serif; }
+        body { background: var(--dark); color: #eee; padding-bottom: 50px; }
+        header { padding: 15px; text-align: center; background: #000; border-bottom: 3px solid var(--pink); }
+        .logo-img { height: 45px; }
+        h1 { font-family: 'Rye'; font-size: 1.3rem; color: #fff; text-shadow: 2px 2px var(--pink); }
+        .sig-header { color: var(--cyan); font-size: 0.9rem; margin-top: 5px; opacity: 0.9; font-weight: bold; letter-spacing: 1px; }
+
+        .main-nav { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; padding: 12px; background: rgba(0,0,0,0.9); position: sticky; top: 0; z-index: 1000; border-bottom: 1px solid #333; }
+        .btn { padding: 12px; border-radius: 8px; border: none; font-weight: bold; font-size: 0.7rem; text-transform: uppercase; cursor: pointer; color: #fff; text-align: center; }
+        .btn-load { background: var(--cyan); color: #000; }
+        .btn-reset { background: #444; }
+        .btn-save { background: var(--green); color: #000; }
+
+        .control-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 12px; }
+        .panel { background: var(--panel); padding: 12px; border-radius: 10px; border: 1px solid #2d2d44; }
+        .full { grid-column: span 2; }
+
+        label { display: flex; justify-content: space-between; font-size: 0.65rem; color: var(--cyan); margin-bottom: 5px; text-transform: uppercase; }
+        input[type=range] { width: 100%; accent-color: var(--pink); }
+        select { width: 100%; background: #000; color: #fff; border: 1px solid var(--pink); padding: 8px; border-radius: 5px; }
+
+        .d-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; width: 110px; margin: 0 auto; }
+        .dp-btn { background: #000; border: 1px solid var(--cyan); color: var(--cyan); padding: 8px; border-radius: 5px; font-size: 1rem; }
+
+        .canvas-area { margin: 15px auto; padding: 10px; background: #000; display: flex; flex-direction: column; align-items: center; }
+        canvas { background: #fff; max-width: 100%; height: auto; }
+        .footer-sig { color: var(--pink); font-size: 0.9rem; margin-top: 15px; font-family: 'Rye'; letter-spacing: 1px; }
+    </style>
+</head>
+<body>
+
+<header>
+    <img src="https://i.postimg.cc/CR9ZXgKy/CR9ZXgKy.png" class="logo-img">
+    <h1>Stencil Print Pro</h1>
+    <div class="sig-header">Maman Sokal 🖤</div>
+</header>
+
+<div class="main-nav">
+    <label for="fIn" class="btn btn-load">✦ Importer</label>
+    <input type="file" id="fIn" accept="image/*" style="display:none">
+    <button class="btn btn-reset" onclick="location.reload()">Effacer</button>
+    <button class="btn btn-save" id="btnExp">Exporter</button>
+</div>
+
+<div class="control-grid">
+    <div class="panel full">
+        <label>Style de Rendu</label>
+        <select id="renderStyle">
+            <option value="bold">CONTOURS NETS (Ligne Épaisse)</option>
+            <option value="shades">SHADING (Gris & Détails)</option>
+            <option value="pure">PHOTO B&W (Seuil Net)</option>
+        </select>
+    </div>
+
+    <div class="panel">
+        <label>Noir / Seuil <span id="vBlack">128</span></label>
+        <input type="range" id="black" min="0" max="255" value="128">
+    </div>
+    <div class="panel">
+        <label>Précision <span id="vDetail">50</span></label>
+        <input type="range" id="detail" min="1" max="100" value="50">
+    </div>
+
+    <div class="panel">
+        <label>Zoom Aperçu <span id="vZoom">55%</span></label>
+        <input type="range" id="zoom" min="10" max="100" value="55">
+    </div>
+    <div class="panel">
+        <label>Taille Image <span id="vSize">100%</span></label>
+        <input type="range" id="size" min="10" max="250" value="100">
+    </div>
+
+    <div class="panel">
+        <label>Déplacement</label>
+        <div class="d-pad">
+            <div></div><button class="dp-btn" onclick="move(0,-15)">▲</button><div></div>
+            <button class="dp-btn" onclick="move(-15,0)">◀</button>
+            <button class="dp-btn" onclick="move(0,0)" style="color:var(--pink)">◎</button>
+            <button class="dp-btn" onclick="move(15,0)">▶</button>
+            <div></div><button class="dp-btn" onclick="move(0,15)">▼</button><div></div>
+        </div>
+    </div>
+
+    <div class="panel">
+        <label>Options</label>
+        <select id="mirror">
+            <option value="no">Miroir Désactivé</option>
+            <option value="yes">Miroir Activé</option>
+        </select>
+        <select id="pages" style="margin-top:10px">
+            <option value="1">1 Page (A4)</option>
+            <option value="4">4 Pages (2x2)</option>
+            <option value="9">9 Pages (3x3)</option>
+        </select>
+    </div>
+</div>
+
+<div class="canvas-area">
+    <canvas id="gCanvas"></canvas>
+    <div class="footer-sig">Maman Sokal 🖤</div>
+</div>
+
+<script>
+    const $ = id => document.getElementById(id);
+    const cv = $('gCanvas'), ctx = cv.getContext('2d');
+    let img = null;
+    let st = { x:0, y:0, size:100, black:128, detail:50, style:'bold', mirror:'no', pages:1, zoom:55 };
+
+    $('fIn').onchange = (e) => {
+        const r = new FileReader();
+        r.onload = (ev) => { img = new Image(); img.onload = render; img.src = ev.target.result; };
+        r.readAsDataURL(e.target.files[0]);
+    };
+
+    function move(dx, dy) {
+        if(dx===0 && dy===0){ st.x=0; st.y=0; } else { st.x+=dx; st.y+=dy; }
+        render();
+    }
+
+    function render() {
+        if(!img) return;
+        const A4W = 794, A4H = 1123;
+        let cols = st.pages == 1 ? 1 : (st.pages <= 4 ? 2 : 3);
+        let rows = Math.ceil(st.pages / cols);
+        cv.width = A4W * cols; cv.height = A4H * rows;
+        ctx.fillStyle = "white"; ctx.fillRect(0,0,cv.width,cv.height);
+        ctx.save();
+        ctx.translate(cv.width/2 + st.x, cv.height/2 + st.y);
+        if(st.mirror === 'yes') ctx.scale(-1, 1);
+        let dw = cv.width * (st.size/100);
+        let dh = dw * (img.height/img.width);
+        ctx.drawImage(img, -dw/2, -dh/2, dw, dh);
+        ctx.restore();
+        processImage();
+        drawGrid(A4W, A4H, cols, rows);
+        cv.style.width = st.zoom + "%";
+        $('vBlack').textContent = st.black; $('vDetail').textContent = st.detail;
+        $('vZoom').textContent = st.zoom + "%"; $('vSize').textContent = st.size + "%";
+    }
+
+    function processImage() {
+        const idat = ctx.getImageData(0,0,cv.width,cv.height);
+        const d = idat.data, w = cv.width;
+        if(st.style === 'bold') {
+            const temp = new Uint8ClampedArray(d);
+            const edge = (105 - st.detail); 
+            for (let i = 0; i < d.length; i += 4) {
+                const x = (i/4)%w; const y = Math.floor((i/4)/w);
+                if(x===0||y===0||x===w-1) continue;
+                const g = Math.abs(temp[i + 4] - temp[i - 4]) + Math.abs(temp[i + w*4] - temp[i - w*4]);
+                d[i] = d[i+1] = d[i+2] = g > edge ? 0 : 255;
+            }
+        } else {
+            for (let i = 0; i < d.length; i += 4) {
+                let v = (d[i]+d[i+1]+d[i+2])/3;
+                if(st.style === 'shades') v = v < st.black ? (v < st.black/2 ? 0 : 180) : 255;
+                else v = v < st.black ? 0 : 255;
+                d[i] = d[i+1] = d[i+2] = v;
+            }
+        }
+        ctx.putImageData(idat, 0,0);
+    }
+
+    function drawGrid(w, h, c, r) {
+        ctx.strokeStyle = "rgba(255, 0, 122, 0.25)";
+        ctx.lineWidth = 2;
+        for(let i=1; i<c; i++){ ctx.beginPath(); ctx.moveTo(i*w,0); ctx.lineTo(i*w,cv.height); ctx.stroke(); }
+        for(let i=1; i<r; i++){ ctx.beginPath(); ctx.moveTo(0,i*h); ctx.lineTo(cv.width,i*h); ctx.stroke(); }
+    }
+
+    $('btnExp').onclick = () => {
+        const A4W = 794, A4H = 1123;
+        let cols = st.pages == 1 ? 1 : (st.pages <= 4 ? 2 : 3);
+        let rows = Math.ceil(st.pages / cols);
+        for(let y=0; y<rows; y++){
+            for(let x=0; x<cols; x++){
+                const tcv = document.createElement('canvas');
+                tcv.width = A4W; tcv.height = A4H;
+                tcv.getContext('2d').drawImage(cv, x*A4W, y*A4H, A4W, A4H, 0,0,A4W,A4H);
+                const l = document.createElement('a');
+                l.download = `Stencil_Sokal_P${y+1}_${x+1}.png`;
+                l.href = tcv.toDataURL(); l.click();
+            }
+        }
+    };
+
+    $('renderStyle').onchange = (e) => { st.style = e.target.value; render(); };
+    $('black').oninput = (e) => { st.black = e.target.value; render(); };
+    $('detail').oninput = (e) => { st.detail = e.target.value; render(); };
+    $('zoom').oninput = (e) => { st.zoom = e.target.value; render(); };
+    $('size').oninput = (e) => { st.size = e.target.value; render(); };
+    $('mirror').onchange = (e) => { st.mirror = e.target.value; render(); };
+    $('pages').onchange = (e) => { st.pages = e.target.value; render(); };
+</script>
+</body>
+</html>
