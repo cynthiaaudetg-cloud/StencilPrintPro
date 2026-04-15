@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Stencil Print Pro | Styles & Intensité 🖤</title>
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --pink: #ff007a; --cyan: #00f2ff; --green: #39ff14; --dark: #0a0a0f; --panel: #161625; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Oswald', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background: var(--dark); color: #eee; padding-bottom: 50px; }
+        header { padding: 10px 15px; background: #000; border-bottom: 2px solid var(--pink); display: flex; justify-content: space-between; align-items: center; }
+        .main-nav { display: grid; grid-template-columns: 2fr 1.5fr 2fr; gap: 8px; padding: 10px; background: rgba(0,0,0,0.95); position: sticky; top: 0; z-index: 1000; border-bottom: 1px solid #333; }
+        .btn { padding: 12px; border-radius: 6px; border: none; font-weight: 700; font-size: 0.75rem; text-transform: uppercase; cursor: pointer; text-align: center; color: #000; }
+        .btn-load { background: var(--cyan); }
+        .btn-reset { background: #444; color: #fff; }
+        .btn-exp { background: var(--green); }
+        .grid-selector { display: flex; gap: 4px; padding: 10px; overflow-x: auto; background: #000; }
+        .grid-btn { flex: 0 0 22%; padding: 10px; background: #111; border: 1px solid var(--pink); color: #fff; border-radius: 4px; font-size: 0.75rem; cursor: pointer; }
+        .grid-btn.active { background: var(--pink); color: #000; }
+        .control-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px; }
+        .panel { background: var(--panel); padding: 10px; border-radius: 8px; border: 1px solid #2d2d44; }
+        .full { grid-column: span 2; }
+        label { display: flex; justify-content: space-between; font-size: 0.65rem; color: var(--cyan); margin-bottom: 4px; text-transform: uppercase; }
+        .adj-row { display: flex; align-items: center; gap: 5px; }
+        .plus-minus { background: #000; color: #fff; border: 1px solid var(--pink); padding: 8px 12px; border-radius: 4px; font-weight: 700; cursor: pointer; min-width: 40px; }
+        input[type=range], select { width: 100%; accent-color: var(--pink); background: #000; color: #fff; border: 1px solid #444; border-radius: 4px; padding: 8px; }
+        .btn-auto { background: var(--pink); color: #000; border: none; padding: 14px; border-radius: 6px; font-weight: 700; width: 100%; text-transform: uppercase; cursor: pointer; margin-bottom: 8px; }
+        .preview-container { background: #111; padding: 20px; overflow: auto; display: flex; flex-direction: column; align-items: center; }
+        .pages-wrapper { display: grid; gap: 20px; background: #222; padding: 20px; border-radius: 4px; }
+        .a4-page { background: white; width: 210px; height: 297px; box-shadow: 0 0 15px rgba(0,0,0,0.8); position: relative; }
+        canvas { width: 100%; height: 100%; display: block; }
+        .safe-guide { position: absolute; border: 1px dashed rgba(255, 0, 0, 0.4); pointer-events: none; z-index: 10; display: block; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1 style="font-size: 1.1rem;">STENCIL PRINT PRO</h1>
+    <div style="color: var(--pink); font-size: 0.8rem;">Maman Sokal 🖤</div>
+</header>
+
+<div class="main-nav">
+    <label for="fIn" class="btn btn-load">✦ IMPORTER</label>
+    <input type="file" id="fIn" accept="image/*" style="display:none">
+    <button class="btn btn-reset" onclick="location.reload()">RESET</button>
+    <button class="btn btn-exp" id="btnExp">EXPORTER</button>
+</div>
+
+<div class="grid-selector">
+    <button class="grid-btn" data-grid="1">1 PAGE</button>
+    <button class="grid-btn active" data-grid="4">4 (2x2)</button>
+    <button class="grid-btn" data-grid="9">9 (3x3)</button>
+    <button class="grid-btn" data-grid="12">12 (3x4)</button>
+</div>
+
+<div class="control-grid">
+    <div class="panel full">
+        <button class="btn-auto" onclick="autoFit()">🎯 AJUSTER & CENTRER AU GABARIT</button>
+        <label>SÉCURITÉ IMPRESSION : <span id="vMargin">10mm</span></label>
+        <div class="adj-row">
+            <button class="plus-minus" onclick="adj('margin', -1)">-</button>
+            <input type="range" id="margin" min="0" max="30" value="10">
+            <button class="plus-minus" onclick="adj('margin', 1)">+</button>
+        </div>
+    </div>
+
+    <div class="panel full">
+        <label>STYLE DE RENDU</label>
+        <select id="renderStyle" onchange="st.style=this.value; render()">
+            <option value="original">IMAGE ORIGINELLE</option>
+            <option value="impression">IMPRESSION CLASSIQUE</option>
+            <option value="realiste">STYLE RÉALISTE</option>
+            <option value="douceur">DOUCEUR / OMBRAGES</option>
+            <option value="dotwork">STYLE DOTWORK</option>
+        </select>
+    </div>
+
+    <div class="panel full">
+        <label>INTENSITÉ DU STYLE <span id="vPower">50%</span></label>
+        <div class="adj-row">
+            <button class="plus-minus" onclick="adj('power', -5)">-</button>
+            <input type="range" id="power" min="0" max="100" value="50">
+            <button class="plus-minus" onclick="adj('power', 5)">+</button>
+        </div>
+    </div>
+
+    <div class="panel">
+        <label>NETTETÉ <span id="vSharp">0</span></label>
+        <div class="adj-row">
+            <button class="plus-minus" onclick="adj('sharp', -5)">-</button>
+            <input type="range" id="sharp" min="0" max="100" value="0">
+            <button class="plus-minus" onclick="adj('sharp', 5)">+</button>
+        </div>
+    </div>
+
+    <div class="panel">
+        <label>CONTRASTE <span id="vBlack">128</span></label>
+        <div class="adj-row">
+            <button class="plus-minus" onclick="adj('black', -10)">-</button>
+            <input type="range" id="black" min="1" max="254" value="128">
+            <button class="plus-minus" onclick="adj('black', 10)">+</button>
+        </div>
+    </div>
+
+    <div class="panel">
+        <label>LUMINOSITÉ <span id="vBright">0</span></label>
+        <div class="adj-row">
+            <button class="plus-minus" onclick="adj('bright', -10)">-</button>
+            <input type="range" id="bright" min="-100" max="100" value="0">
+            <button class="plus-minus" onclick="adj('bright', 10)">+</button>
+        </div>
+    </div>
+
+    <div class="panel">
+        <label>TAILLE IMAGE <span id="vSize">100%</span></label>
+        <div class="adj-row">
+            <button class="plus-minus" onclick="adj('size', -10)">-</button>
+            <input type="range" id="size" min="10" max="1000" value="100">
+            <button class="plus-minus" onclick="adj('size', 10)">+</button>
+        </div>
+    </div>
+</div>
+
+<div class="preview-container">
+    <div class="pages-wrapper" id="pagesWrapper"></div>
+</div>
+
+<script>
+    const $ = id => document.getElementById(id);
+    let img = null;
+    let st = { size: 100, black: 128, bright: 0, sharp: 0, grid: 4, margin: 10, style: 'original', power: 50 };
+
+    function updateGridUI() {
+        const wrapper = $('pagesWrapper');
+        wrapper.innerHTML = '';
+        let cols = (st.grid === 12) ? 3 : (st.grid === 9 ? 3 : (st.grid >= 4 ? 2 : 1));
+        wrapper.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+        for(let i=0; i < st.grid; i++) {
+            const page = document.createElement('div');
+            page.className = 'a4-page';
+            page.innerHTML = `<div class="safe-guide"></div><canvas id="cv-${i}"></canvas>`;
+            wrapper.appendChild(page);
+        }
+        updateSafeGuides();
+        render();
+    }
+
+    function updateSafeGuides() {
+        document.querySelectorAll('.safe-guide').forEach(g => {
+            g.style.top = g.style.left = st.margin + 'px';
+            g.style.width = `calc(100% - ${st.margin*2}px)`;
+            g.style.height = `calc(100% - ${st.margin*2}px)`;
+        });
+        $('vMargin').textContent = st.margin + 'mm';
+    }
+
+    function render() {
+        if(!img) return;
+        const canvases = document.querySelectorAll('canvas');
+        const A4_W = 2480, A4_H = 3508;
+        const SAFE_PX = st.margin * 11.8;
+        const PRINT_W = A4_W - (SAFE_PX * 2);
+        const PRINT_H = A4_H - (SAFE_PX * 2);
+        let cols = (st.grid === 12 || st.grid === 9) ? 3 : (st.grid >= 4 ? 2 : 1);
+        const rows = Math.ceil(st.grid / cols);
+
+        canvases.forEach((cv, i) => {
+            cv.width = A4_W; cv.height = A4_H;
+            const ctx = cv.getContext('2d');
+            ctx.fillStyle = "white"; ctx.fillRect(0,0,A4_W,A4_H);
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(SAFE_PX, SAFE_PX, PRINT_W, PRINT_H);
+            ctx.clip();
+            ctx.translate(SAFE_PX, SAFE_PX);
+            ctx.translate(-(i % cols) * PRINT_W, -Math.floor(i / cols) * PRINT_H);
+            ctx.translate((cols * PRINT_W)/2, (rows * PRINT_H)/2);
+            let dw = PRINT_W * (st.size/100), dh = dw * (img.height/img.width);
+            ctx.drawImage(img, -dw/2, -dh/2, dw, dh);
+            ctx.restore();
+
+            if (st.style !== 'original') applySokalFilters(ctx, A4_W, A4_H);
+        });
+        updateLabels();
+    }
+
+    function applySokalFilters(ctx, w, h) {
+        const idata = ctx.getImageData(0,0,w,h);
+        const d = idata.data;
+        const p = st.power / 100;
+        for (let j = 0; j < d.length; j += 4) {
+            let g = (d[j] + d[j+1] + d[j+2]) / 3 + st.bright;
+            if (st.style === 'dotwork') {
+                let x = (j/4)%w, y = Math.floor((j/4)/w);
+                let thr = ((x%4)*4 + (y%4)) * (16 * (1-p));
+                g = g < (st.black - thr) ? 0 : 255;
+            } else if (st.style === 'realiste') {
+                g = g < st.black ? (g * (1-p)) : 255;
+            } else if (st.style === 'douceur') {
+                g = g < st.black ? (g + (255-g)*p) : 255;
+            } else {
+                g = g < st.black ? 0 : 255;
+            }
+            d[j] = d[j+1] = d[j+2] = g;
+        }
+        ctx.putImageData(idata, 0, 0);
+    }
+
+    function autoFit() {
+        if(!img) return;
+        let cols = (st.grid === 12 || st.grid === 9) ? 3 : (st.grid >= 4 ? 2 : 1);
+        st.size = (cols * 100) - (st.margin * 3.5);
+        $('size').value = st.size;
+        render();
+    }
+
+    function updateLabels() {
+        $('vSize').textContent = Math.round(st.size) + "%";
+        $('vBlack').textContent = st.black;
+        $('vBright').textContent = st.bright;
+        $('vSharp').textContent = st.sharp;
+        $('vPower').textContent = st.power + "%";
+    }
+
+    function adj(id, delta) {
+        st[id] = Math.max($(id).min, Math.min($(id).max, parseFloat(st[id]) + delta));
+        $(id).value = st[id];
+        if(id === 'margin') updateSafeGuides();
+        render();
+    }
+
+    $('fIn').onchange = e => {
+        const reader = new FileReader();
+        reader.onload = ev => {
+            img = new Image();
+            img.onload = () => autoFit();
+            img.src = ev.target.result;
+        };
+        reader.readAsDataURL(e.target.files[0]);
+    };
+
+    document.querySelectorAll('.grid-btn').forEach(btn => {
+        btn.onclick = () => {
+            document.querySelector('.grid-btn.active').classList.remove('active');
+            btn.classList.add('active');
+            st.grid = parseInt(btn.dataset.grid);
+            updateGridUI();
+        };
+    });
+
+    $('btnExp').onclick = () => {
+        document.querySelectorAll('canvas').forEach((cv, i) => {
+            const link = document.createElement('a');
+            link.download = `Stencil_P${i+1}.png`;
+            link.href = cv.toDataURL();
+            link.click();
+        });
+    };
+    updateGridUI();
+</script>
+</body>
+</html>
